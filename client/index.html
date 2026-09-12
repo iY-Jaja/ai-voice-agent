@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Multilingual Voice Agent</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: min(900px, 92vw);
+            padding: 32px 0;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: #94a3b8;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        #stopButton {
+            background: #dc2626;
+        }
+
+        #stopButton:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        #interruptButton {
+            background: #d97706;
+        }
+
+        #interruptButton:hover:not(:disabled) {
+            background: #b45309;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 14px;
+            background: #0f172a;
+            border-radius: 10px;
+            border: 1px solid #334155;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+        }
+
+        .status-dot.recording {
+            background: #ef4444;
+        }
+
+        .status-dot.processing {
+            background: #f59e0b;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        #statusText {
+            font-size: 14px;
+        }
+
+        .transcript {
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 12px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+        }
+
+        .message:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 5px;
+            color: #64748b;
+        }
+
+        .message.user .message-label {
+            color: #60a5fa;
+        }
+
+        .message.assistant .message-label {
+            color: #34d399;
+        }
+
+        .message.system .message-label {
+            color: #fbbf24;
+        }
+
+        .message-text {
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .partial {
+            opacity: 0.55;
+            font-style: italic;
+        }
+
+        .metadata {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metadata-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .metadata-label {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .metadata-value {
+            font-family: monospace;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 20px;
+            }
+
+            .metadata {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="card">
+        <h1>Realtime Multilingual Voice Agent</h1>
+        <p class="subtitle">
+            FastAPI + AssemblyAI Voice Agent API
+        </p>
+
+        <div class="controls">
+            <button id="startButton">Start</button>
+            <button id="stopButton" disabled>Stop</button>
+            <button id="interruptButton" disabled>Interrupt</button>
+        </div>
+
+        <div class="status">
+            <span id="statusDot" class="status-dot"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <div id="transcript" class="transcript"></div>
+
+        <div class="metadata">
+            <div class="metadata-item">
+                <div class="metadata-label">WebSocket</div>
+                <div id="connectionState" class="metadata-value">Disconnected</div>
+            </div>
+
+            <div class="metadata-item">
+                <div class="metadata-label">Audio Sample Rate</div>
+                <div id="sampleRate" class="metadata-value">-</div>
+            </div>
+
+            <div class="metadata-item">
+                <div class="metadata-label">Session ID</div>
+                <div id="sessionId" class="metadata-value">-</div>
+            </div>
+
+            <div class="metadata-item">
+                <div class="metadata-label">Agent State</div>
+                <div id="agentState" class="metadata-value">Idle</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+"use strict";
+
+/*
+ * AssemblyAI Voice Agent audio format:
+ *
+ * Input:
+ *   PCM16
+ *   mono
+ *   24,000 Hz
+ *
+ * Output:
+ *   PCM16
+ *   mono
+ *   24,000 Hz
+ *
+ * The FastAPI backend receives raw binary PCM16 from this browser,
+ * converts it to base64, and sends:
+ *
+ * {
+ *     "type": "input.audio",
+ *     "audio": "<base64>"
+ * }
+ *
+ * AssemblyAI sends:
+ *
+ * {
+ *     "type": "reply.audio",
+ *     "data": "<base64>"
+ * }
+ *
+ * The backend decodes "data" and forwards the raw PCM bytes to
+ * this browser as a binary WebSocket message.
+ */
+
+const SAMPLE_RATE = 24000;
+const CHANNELS = 1;
+
+let websocket = null;
+
+let audioContext = null;
+let mediaStream = null;
+let sourceNode = null;
+let processorNode = null;
+
+let isRecording = false;
+let sessionReady = false;
+
+let playbackQueue = [];
+let playbackTime = 0;
+
+let partialUserMessage = null;
+
+const startButton = document.getElementById("startButton");
+const stopButton = document.getElementById("stopButton");
+const interruptButton = document.getElementById("interruptButton");
+
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+
+const transcriptElement = document.getElementById("transcript");
+
+const connectionStateElement =
+    document.getElementById("connectionState");
+
+const sampleRateElement =
+    document.getElementById("sampleRate");
+
+const sessionIdElement =
+    document.getElementById("sessionId");
+
+const agentStateElement =
+    document.getElementById("agentState");
+
+
+/* ============================================================
+ * UI
+ * ============================================================ */
+
+function setStatus(text, state = "") {
+    statusText.textContent = text;
+
+    statusDot.className = "status-dot";
+
+    if (state) {
+        statusDot.classList.add(state);
+    }
+}
+
+function setAgentState(state) {
+    agentStateElement.textContent = state;
+}
+
+function appendMessage(role, text, partial = false) {
+    const message = document.createElement("div");
+    message.className = `message ${role}`;
+
+    const label = document.createElement("div");
+    label.className = "message-label";
+
+    if (role === "user") {
+        label.textContent = "You";
+    } else if (role === "assistant") {
+        label.textContent = "Assistant";
+    } else {
+        label.textContent = "System";
+    }
+
+    const content = document.createElement("div");
+    content.className = "message-text";
+
+    if (partial) {
+        content.classList.add("partial");
+    }
+
+    content.textContent = text;
+
+    message.appendChild(label);
+    message.appendChild(content);
+
+    transcriptElement.appendChild(message);
+    transcriptElement.scrollTop = transcriptElement.scrollHeight;
+
+    return message;
+}
+
+function updatePartialUserMessage(text) {
+    if (!partialUserMessage) {
+        partialUserMessage = appendMessage("user", text, true);
+        return;
+    }
+
+    const content =
+        partialUserMessage.querySelector(".message-text");
+
+    content.textContent = text;
+}
+
+function finalizePartialUserMessage(text) {
+    if (!partialUserMessage) {
+        appendMessage("user", text);
+        return;
+    }
+
+    const content =
+        partialUserMessage.querySelector(".message-text");
+
+    content.textContent = text;
+    content.classList.remove("partial");
+
+    partialUserMessage = null;
+}
+
+function clearTranscript() {
+    transcriptElement.innerHTML = "";
+    partialUserMessage = null;
+}
+
+
+/* ============================================================
+ * AudioContext
+ * ============================================================ */
+
+async function ensureAudioContext() {
+    if (!audioContext) {
+        audioContext = new AudioContext({
+            sampleRate: SAMPLE_RATE
+        });
+    }
+
+    if (audioContext.state === "suspended") {
+        await audioContext.resume();
+    }
+
+    sampleRateElement.textContent =
+        `${audioContext.sampleRate} Hz`;
+}
+
+
+/* ============================================================
+ * PCM conversion
+ * ============================================================ */
+
+function floatTo16BitPCM(float32Array) {
+    const output = new Int16Array(float32Array.length);
+
+    for (let i = 0; i < float32Array.length; i++) {
+        const sample = Math.max(
+            -1,
+            Math.min(1, float32Array[i])
+        );
+
+        output[i] =
+            sample < 0
+                ? sample * 0x8000
+                : sample * 0x7FFF;
+    }
+
+    return output;
+}
+
+
+/*
+ * Downsample browser microphone audio to 24 kHz.
+ *
+ * Browsers may ignore the requested AudioContext sample rate and
+ * actually run the microphone pipeline at 48 kHz.
+ */
+function downsampleTo24kHz(
+    input,
+    inputSampleRate
+) {
+    if (inputSampleRate === SAMPLE_RATE) {
+        return floatTo16BitPCM(input);
+    }
+
+    const sampleRateRatio =
+        inputSampleRate / SAMPLE_RATE;
+
+    const outputLength =
+        Math.floor(input.length / sampleRateRatio);
+
+    const output = new Float32Array(outputLength);
+
+    let outputIndex = 0;
+    let inputIndex = 0;
+
+    while (outputIndex < outputLength) {
+        const nextInputIndex =
+            Math.min(
+                Math.round(
+                    (outputIndex + 1) * sampleRateRatio
+                ),
+                input.length
+            );
+
+        let sum = 0;
+        let count = 0;
+
+        for (
+            let i = inputIndex;
+            i < nextInputIndex;
+            i++
+        ) {
+            sum += input[i];
+            count++;
+        }
+
+        output[outputIndex] =
+            count > 0
+                ? sum / count
+                : 0;
+
+        outputIndex++;
+        inputIndex = nextInputIndex;
+    }
+
+    return floatTo16BitPCM(output);
+}
+
+
+/* ============================================================
+ * Microphone
+ * ============================================================ */
+
+async function startMicrophone() {
+    await ensureAudioContext();
+
+    mediaStream =
+        await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: CHANNELS,
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        });
+
+    const track =
+        mediaStream.getAudioTracks()[0];
+
+    console.log(
+        "Microphone settings:",
+        track.getSettings()
+    );
+
+    sourceNode =
+        audioContext.createMediaStreamSource(
+            mediaStream
+        );
+
+    /*
+     * ScriptProcessorNode is deprecated but kept here because it
+     * works without requiring a separate AudioWorklet file.
+     *
+     * For production, replace this with AudioWorklet.
+     */
+    processorNode =
+        audioContext.createScriptProcessor(
+            4096,
+            1,
+            1
+        );
+
+    processorNode.onaudioprocess =
+        function(event) {
+            if (!isRecording) {
+                return;
+            }
+
+            if (!websocket) {
+                return;
+            }
+
+            if (websocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            if (!sessionReady) {
+                return;
+            }
+
+            const input =
+                event.inputBuffer.getChannelData(0);
+
+            const pcm16 =
+                downsampleTo24kHz(
+                    input,
+                    audioContext.sampleRate
+                );
+
+            /*
+             * Send raw PCM16 bytes to FastAPI.
+             *
+             * FastAPI then converts these bytes to base64 for
+             * AssemblyAI's input.audio event.
+             */
+            websocket.send(pcm16.buffer);
+        };
+
+    /*
+     * Connecting the processor to the destination keeps the
+     * ScriptProcessorNode active in browsers.
+     *
+     * The gain is zero, so microphone audio is not played back.
+     */
+    const silentGain =
+        audioContext.createGain();
+
+    silentGain.gain.value = 0;
+
+    sourceNode.connect(processorNode);
+    processorNode.connect(silentGain);
+    silentGain.connect(audioContext.destination);
+
+    isRecording = true;
+
+    setStatus("Recording", "recording");
+    setAgentState("Listening");
+}
+
+
+/* ============================================================
+ * Microphone cleanup
+ * ============================================================ */
+
+function stopMicrophone() {
+    isRecording = false;
+
+    if (processorNode) {
+        processorNode.onaudioprocess = null;
+
+        try {
+            processorNode.disconnect();
+        } catch (_) {}
+
+        processorNode = null;
+    }
+
+    if (sourceNode) {
+        try {
+            sourceNode.disconnect();
+        } catch (_) {}
+
+        sourceNode = null;
+    }
+
+    if (mediaStream) {
+        for (const track of mediaStream.getTracks()) {
+            track.stop();
+        }
+
+        mediaStream = null;
+    }
+}
+
+
+/* ============================================================
+ * PCM playback
+ * ============================================================ */
+
+async function playPCMChunk(
+    arrayBuffer,
+    sampleRate = SAMPLE_RATE
+) {
+    await ensureAudioContext();
+
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        return;
+    }
+
+    /*
+     * PCM16 little-endian.
+     */
+    const pcm =
+        new Int16Array(arrayBuffer);
+
+    if (pcm.length === 0) {
+        return;
+    }
+
+    const audioBuffer =
+        audioContext.createBuffer(
+            1,
+            pcm.length,
+            sampleRate
+        );
+
+    const channel =
+        audioBuffer.getChannelData(0);
+
+    for (let i = 0; i < pcm.length; i++) {
+        channel[i] =
+            pcm[i] / 32768;
+    }
+
+    const source =
+        audioContext.createBufferSource();
+
+    source.buffer = audioBuffer;
+    source.connect(audioContext.destination);
+
+    const now =
+        audioContext.currentTime;
+
+    /*
+     * Never schedule audio in the past.
+     */
+    playbackTime =
+        Math.max(
+            playbackTime,
+            now
+        );
+
+    source.start(playbackTime);
+
+    playbackTime +=
+        audioBuffer.duration;
+
+    playbackQueue.push(source);
+
+    source.onended = function() {
+        const index =
+            playbackQueue.indexOf(source);
+
+        if (index !== -1) {
+            playbackQueue.splice(index, 1);
+        }
+    };
+}
+
+
+/*
+ * AssemblyAI sends reply.audio chunks continuously.
+ *
+ * When barge-in occurs, reply.done contains:
+ *
+ * {
+ *     "status": "interrupted"
+ * }
+ *
+ * At that point all queued audio must be discarded.
+ */
+function flushPlayback() {
+    for (const source of playbackQueue) {
+        try {
+            source.stop();
+        } catch (_) {}
+    }
+
+    playbackQueue = [];
+    playbackTime = 0;
+}
+
+
+/* ============================================================
+ * WebSocket
+ * ============================================================ */
+
+function getWebSocketURL() {
+    const protocol =
+        window.location.protocol === "https:"
+            ? "wss:"
+            : "ws:";
+
+    return `${protocol}//${window.location.host}/ws/voice`;
+}
+
+
+function connectWebSocket() {
+    return new Promise((resolve, reject) => {
+        const url = getWebSocketURL();
+
+        console.log(
+            "Connecting to:",
+            url
+        );
+
+        websocket =
+            new WebSocket(url);
+
+        /*
+         * We need binary data for PCM audio.
+         */
+        websocket.binaryType = "arraybuffer";
+
+        websocket.onopen = function() {
+            console.log(
+                "Connected to FastAPI"
+            );
+
+            connectionStateElement.textContent =
+                "Connected";
+
+            setStatus(
+                "Connected",
+                "connected"
+            );
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            interruptButton.disabled = false;
+
+            websocket.send(
+                JSON.stringify({
+                    type: "start"
+                })
+            );
+
+            resolve();
+        };
+
+        websocket.onmessage =
+            async function(event) {
+                /*
+                 * FastAPI forwards AssemblyAI reply.audio as
+                 * binary PCM16 WebSocket messages.
+                 */
+                if (event.data instanceof ArrayBuffer) {
+                    try {
+                        await playPCMChunk(
+                            event.data,
+                            SAMPLE_RATE
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Audio playback error:",
+                            error
+                        );
+                    }
+
+                    return;
+                }
+
+                /*
+                 * Some browsers may provide Blob instead of
+                 * ArrayBuffer depending on the WebSocket event.
+                 */
+                if (event.data instanceof Blob) {
+                    try {
+                        const arrayBuffer =
+                            await event.data.arrayBuffer();
+
+                        await playPCMChunk(
+                            arrayBuffer,
+                            SAMPLE_RATE
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Blob playback error:",
+                            error
+                        );
+                    }
+
+                    return;
+                }
+
+                let message;
+
+                try {
+                    message =
+                        JSON.parse(event.data);
+                } catch (error) {
+                    console.error(
+                        "Invalid server JSON:",
+                        event.data
+                    );
+                    return;
+                }
+
+                await handleServerEvent(message);
+            };
+
+        websocket.onerror =
+            function(error) {
+                console.error(
+                    "WebSocket error:",
+                    error
+                );
+
+                setStatus(
+                    "WebSocket error",
+                    "error"
+                );
+
+                reject(
+                    new Error(
+                        "WebSocket connection failed"
+                    )
+                );
+            };
+
+        websocket.onclose =
+            function(event) {
+                console.log(
+                    "Disconnected:",
+                    event.code,
+                    event.reason
+                );
+
+                sessionReady = false;
+
+                connectionStateElement.textContent =
+                    "Disconnected";
+
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                interruptButton.disabled = true;
+
+                setAgentState("Idle");
+
+                if (event.code !== 1000) {
+                    setStatus(
+                        "Disconnected unexpectedly",
+                        "error"
+                    );
+                } else {
+                    setStatus(
+                        "Disconnected"
+                    );
+                }
+            };
+    });
+}
+
+
+/* ============================================================
+ * Server event handling
+ * ============================================================ */
+
+async function handleServerEvent(event) {
+    console.log(
+        "Event:",
+        JSON.stringify(event)
+    );
+
+    switch (event.type) {
+        case "session_started":
+            console.log(
+                "Session started:",
+                event.session_id
+            );
+
+            sessionIdElement.textContent =
+                event.session_id || "-";
+
+            setAgentState(
+                "Connecting to AssemblyAI"
+            );
+
+            break;
+
+
+        case "session_ready":
+            sessionReady = true;
+
+            sessionIdElement.textContent =
+                event.session_id || "-";
+
+            console.log(
+                "AssemblyAI ready:",
+                event.session_id
+            );
+
+            setStatus(
+                "Ready — speak now",
+                "connected"
+            );
+
+            setAgentState(
+                "Listening"
+            );
+
+            /*
+             * Audio MUST NOT be sent before session.ready.
+             */
+            try {
+                await startMicrophone();
+            } catch (error) {
+                console.error(
+                    "Microphone error:",
+                    error
+                );
+
+                appendMessage(
+                    "system",
+                    `Microphone error: ${error.message}`
+                );
+
+                stopSession();
+            }
+
+            break;
+
+
+        case "speech_started":
+            setAgentState(
+                "User is speaking"
+            );
+
+            setStatus(
+                "Listening",
+                "recording"
+            );
+
+            break;
+
+
+        case "speech_stopped":
+            setAgentState(
+                "Processing"
+            );
+
+            setStatus(
+                "Processing",
+                "processing"
+            );
+
+            break;
+
+
+        case "transcript_partial":
+            updatePartialUserMessage(
+                event.text || ""
+            );
+
+            break;
+
+
+        case "transcript":
+            finalizePartialUserMessage(
+                event.text || ""
+            );
+
+            break;
+
+
+        case "llm_started":
+            setAgentState(
+                "Assistant is responding"
+            );
+
+            setStatus(
+                "Assistant speaking",
+                "processing"
+            );
+
+            break;
+
+
+        case "assistant_text":
+            appendMessage(
+                "assistant",
+                event.text || ""
+            );
+
+            break;
+
+
+        case "reply_done":
+            if (
+                event.status === "interrupted"
+            ) {
+                flushPlayback();
+
+                setAgentState(
+                    "Listening"
+                );
+
+                setStatus(
+                    "Listening",
+                    "recording"
+                );
+            } else {
+                setAgentState(
+                    "Listening"
+                );
+
+                setStatus(
+                    "Ready — speak now",
+                    "connected"
+                );
+            }
+
+            break;
+
+
+        case "interrupted":
+            flushPlayback();
+
+            setAgentState(
+                "Listening"
+            );
+
+            break;
+
+
+        case "session_ended":
+            sessionReady = false;
+
+            setAgentState(
+                "Idle"
+            );
+
+            break;
+
+
+        case "error":
+            console.error(
+                "Server error:",
+                event
+            );
+
+            appendMessage(
+                "system",
+                event.message ||
+                "Unknown server error"
+            );
+
+            setStatus(
+                event.message ||
+                "Error",
+                "error"
+            );
+
+            setAgentState(
+                "Error"
+            );
+
+            break;
+
+
+        case "assemblyai_event":
+            /*
+             * Useful for debugging events that are not explicitly
+             * mapped by the FastAPI session layer.
+             */
+            console.debug(
+                "AssemblyAI event:",
+                event.event
+            );
+
+            break;
+
+
+        default:
+            console.debug(
+                "Unhandled event:",
+                event
+            );
+    }
+}
+
+
+/* ============================================================
+ * Start
+ * ============================================================ */
+
+async function startSession() {
+    if (
+        websocket &&
+        websocket.readyState === WebSocket.OPEN
+    ) {
+        return;
+    }
+
+    clearTranscript();
+
+    flushPlayback();
+
+    sessionReady = false;
+
+    try {
+        await ensureAudioContext();
+
+        await connectWebSocket();
+    } catch (error) {
+        console.error(
+            "Failed to start:",
+            error
+        );
+
+        stopMicrophone();
+
+        if (websocket) {
+            try {
+                websocket.close();
+            } catch (_) {}
+
+            websocket = null;
+        }
+
+        setStatus(
+            "Failed to connect",
+            "error"
+        );
+
+        setAgentState(
+            "Error"
+        );
+    }
+}
+
+
+/* ============================================================
+ * Stop
+ * ============================================================ */
+
+function stopSession() {
+    sessionReady = false;
+
+    stopMicrophone();
+
+    flushPlayback();
+
+    if (
+        websocket &&
+        websocket.readyState === WebSocket.OPEN
+    ) {
+        try {
+            websocket.send(
+                JSON.stringify({
+                    type: "end"
+                })
+            );
+        } catch (_) {}
+
+        try {
+            websocket.close(1000);
+        } catch (_) {}
+    }
+
+    websocket = null;
+
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    interruptButton.disabled = true;
+
+    setAgentState("Idle");
+    setStatus("Disconnected");
+
+    connectionStateElement.textContent =
+        "Disconnected";
+}
+
+
+/* ============================================================
+ * Interrupt / barge-in
+ * ============================================================ */
+
+function interruptAgent() {
+    flushPlayback();
+
+    if (
+        websocket &&
+        websocket.readyState === WebSocket.OPEN
+    ) {
+        websocket.send(
+            JSON.stringify({
+                type: "interrupt"
+            })
+        );
+    }
+
+    setAgentState(
+        "Listening"
+    );
+
+    setStatus(
+        "Listening",
+        "recording"
+    );
+}
+
+
+/* ============================================================
+ * Buttons
+ * ============================================================ */
+
+startButton.addEventListener(
+    "click",
+    async function() {
+        await startSession();
+    }
+);
+
+stopButton.addEventListener(
+    "click",
+    function() {
+        stopSession();
+    }
+);
+
+interruptButton.addEventListener(
+    "click",
+    function() {
+        interruptAgent();
+    }
+);
+
+
+/* ============================================================
+ * Page lifecycle
+ * ============================================================ */
+
+window.addEventListener(
+    "beforeunload",
+    function() {
+        stopMicrophone();
+        flushPlayback();
+
+        if (websocket) {
+            try {
+                websocket.close();
+            } catch (_) {}
+        }
+    }
+);
+
+
+/* ============================================================
+ * Initial state
+ * ============================================================ */
+
+setStatus("Disconnected");
+setAgentState("Idle");
+
+console.log(
+    "Voice Agent client initialized."
+);
+
+console.log(
+    `Target audio format: ${SAMPLE_RATE} Hz, PCM16 mono`
+);
+</script>
+</body>
+</html>
