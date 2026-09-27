@@ -36,9 +36,17 @@ Create a virtual environment:
 
 ```bash
 python3.12 -m venv .venv
-source .venv/bin/activate# Build voice AI agents on AssemblyAI
+source .venv/bin/activate      # macOS/Linux
+.venv\Scripts\activate         # Windows
 ```
 
+Install dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+# Build voice AI agents on AssemblyAI
 
 Build a voice agent using AssemblyAI's real-time voice AI technology. Choose the approach that fits your idea and how much of the voice stack you want to build yourself.
 

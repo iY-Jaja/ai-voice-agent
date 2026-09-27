@@ -1,25 +1,61 @@
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
+from pydantic import BaseModel
 
 from app.config import settings
 
 
+class AgentReply(BaseModel):
+    language_code: str
+    text: str
+
+
 class LLM:
     def __init__(self) -> None:
-        self.client = AsyncOpenAI(
-            api_key=settings.openai_api_key
+        self.client = genai.Client(
+            api_key=settings.gemini_api_key
         )
 
-        self.model = settings.openai_model
+        self.model = settings.gemini_model
 
     async def generate(
         self,
         messages: list[dict[str, str]],
-    ) -> str:
-        response = await self.client.chat.completions.create(
+    ) -> AgentReply:
+        system_instruction = None
+        contents: list[types.Content] = []
+
+        for message in messages:
+            if message["role"] == "system":
+                system_instruction = message["content"]
+                continue
+
+            contents.append(
+                types.Content(
+                    role=(
+                        "model"
+                        if message["role"] == "assistant"
+                        else "user"
+                    ),
+                    parts=[
+                        types.Part.from_text(
+                            text=message["content"]
+                        )
+                    ],
+                )
+            )
+
+        response = await self.client.aio.models.generate_content(
             model=self.model,
-            messages=messages,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                response_schema=AgentReply,
+            ),
         )
 
-        content = response.choices[0].message.content
+        if isinstance(response.parsed, AgentReply):
+            return response.parsed
 
-        return content or ""
+        return AgentReply.model_validate_json(response.text)

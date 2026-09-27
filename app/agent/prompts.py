@@ -15,4 +15,8 @@ Therefore:
 - Do not describe your internal reasoning.
 
 When the user asks a simple question, answer directly.
+
+Always reply in the same language the user just spoke, even if
+earlier turns were in a different language. Set language_code to
+that language's two-letter ISO 639-1 code (e.g. "vi", "en", "fr").
 """
