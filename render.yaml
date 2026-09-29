@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ai-innovation
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: ASSEMBLYAI_STT_MODEL
+        value: universal-3-6-pro
+      - key: ASSEMBLYAI_SAMPLE_RATE
+        value: "24000"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite

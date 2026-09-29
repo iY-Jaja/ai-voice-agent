@@ -4,13 +4,12 @@ import asyncio
 from typing import Callable
 
 from assemblyai.streaming.v3 import (
-    BeginEvent,
     RealTimeError,
     RealTimeEvents,
     RealTimeParameters,
     RealTimeTranscriber,
     RealTimeTranscriberOptions,
-    TerminationEvent,
+    SpeechStartedEvent,
     TurnEvent,
 )
 
@@ -21,10 +20,15 @@ class AssemblyAIStreamingSTT:
     def __init__(
         self,
         on_partial: Callable[[str], None] | None = None,
-        on_final: Callable[[str], None] | None = None,
+        on_final: Callable[[str, str | None], None] | None = None,
+        on_speech_started: Callable[[], None] | None = None,
+        on_error: Callable[[str], None] | None = None,
     ) -> None:
         self.on_partial = on_partial
         self.on_final = on_final
+        self.on_speech_started = on_speech_started
+        self.on_error = on_error
+        self.last_final_turn_order: int | None = None
 
         self.client = RealTimeTranscriber(
             RealTimeTranscriberOptions(
@@ -34,16 +38,12 @@ class AssemblyAIStreamingSTT:
         )
 
         self.client.on(
-            RealTimeEvents.Begin,
-            self._on_begin,
-        )
-        self.client.on(
             RealTimeEvents.Turn,
             self._on_turn,
         )
         self.client.on(
-            RealTimeEvents.Termination,
-            self._on_terminated,
+            RealTimeEvents.SpeechStarted,
+            self._on_speech_started,
         )
         self.client.on(
             RealTimeEvents.Error,
@@ -51,13 +51,6 @@ class AssemblyAIStreamingSTT:
         )
 
         self.connected = False
-
-    def _on_begin(
-        self,
-        _: RealTimeTranscriber,
-        event: BeginEvent,
-    ) -> None:
-        print(f"AssemblyAI session started: {event.id}")
 
     def _on_turn(
         self,
@@ -70,28 +63,37 @@ class AssemblyAIStreamingSTT:
             return
 
         if event.end_of_turn:
+            if (
+                self.last_final_turn_order is not None
+                and event.turn_order <= self.last_final_turn_order
+            ):
+                return
+
+            self.last_final_turn_order = event.turn_order
             if self.on_final is not None:
-                self.on_final(transcript)
+                self.on_final(
+                    transcript,
+                    event.language_code,
+                )
         else:
             if self.on_partial is not None:
                 self.on_partial(transcript)
 
-    def _on_terminated(
+    def _on_speech_started(
         self,
         _: RealTimeTranscriber,
-        event: TerminationEvent,
+        __: SpeechStartedEvent,
     ) -> None:
-        print(
-            "AssemblyAI session terminated: "
-            f"{event.audio_duration_seconds}s"
-        )
+        if self.on_speech_started is not None:
+            self.on_speech_started()
 
     def _on_error(
         self,
         _: RealTimeTranscriber,
         error: RealTimeError,
     ) -> None:
-        print(f"AssemblyAI error: {error}")
+        if self.on_error is not None:
+            self.on_error(str(error))
 
     async def start(self) -> None:
         await asyncio.to_thread(
@@ -99,6 +101,11 @@ class AssemblyAIStreamingSTT:
             RealTimeParameters(
                 sample_rate=settings.assemblyai_sample_rate,
                 speech_model=settings.assemblyai_stt_model,
+                language_codes=["vi", "en"],
+                language_detection=True,
+                min_turn_silence=150,
+                max_turn_silence=700,
+                include_partial_turns=True,
             ),
         )
 

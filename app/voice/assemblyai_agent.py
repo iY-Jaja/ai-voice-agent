@@ -67,7 +67,7 @@ class AssemblyAIVoiceAgent:
                         "language_codes": (
                             SUPPORTED_INPUT_LANGUAGES
                         ),
-                        "transcription_mode": "balanced",
+                        "transcription_mode": "min_latency",
                     },
                     "output": {
                         "voice": "alba",

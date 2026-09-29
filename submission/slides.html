@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AI Innovation hackathon submission presentation">
+  <title>AI Innovation — Hackathon Presentation</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fbf8ff;
+      --muted: #cbbfda;
+      --mint: #91f5d5;
+      --lavender: #c9aeff;
+      --amber: #f6c978;
+      --line: rgba(232, 216, 255, .2);
+      font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 14% 5%, #51277a 0, transparent 42%),
+        linear-gradient(135deg, #211139, #17102d);
+    }
+    .deck { width: min(1100px, 94vw); }
+    .slide {
+      position: relative;
+      display: none;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      padding: 7% 8%;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(rgba(239, 224, 255, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(239, 224, 255, .025) 1px, transparent 1px),
+        rgba(28, 14, 48, .68);
+      background-size: 34px 34px, 34px 34px, auto;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .35);
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    .eyebrow {
+      color: var(--mint);
+      font: 500 clamp(10px, 1vw, 14px) ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      max-width: 780px;
+      margin: auto 0 18px;
+      font-size: clamp(48px, 8vw, 96px);
+      line-height: .95;
+      font-weight: 600;
+      letter-spacing: -.055em;
+    }
+    h2 {
+      max-width: 800px;
+      margin: 22px 0 28px;
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1;
+      font-weight: 550;
+      letter-spacing: -.04em;
+    }
+    .lede {
+      max-width: 720px;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 24px);
+      line-height: 1.48;
+    }
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .04em;
+    }
+    .hero-mark {
+      position: absolute;
+      right: 9%;
+      top: 25%;
+      width: 31%;
+      aspect-ratio: 1;
+      border: 1px solid rgba(201, 174, 255, .5);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(145, 245, 213, .13), transparent 67%);
+    }
+    .hero-mark::before, .hero-mark::after {
+      content: "";
+      position: absolute;
+      inset: 12%;
+      border: 1px solid rgba(201, 174, 255, .38);
+      border-radius: 50%;
+    }
+    .hero-mark::after { inset: 25%; border-color: rgba(145, 245, 213, .7); }
+    .hero-wave {
+      position: absolute;
+      right: 12%;
+      top: 48%;
+      width: 25%;
+      height: 20%;
+      background: repeating-linear-gradient(90deg,
+        transparent 0 4%, var(--mint) 4% 5%, transparent 5% 9%);
+      clip-path: polygon(0 46%, 5% 45%, 8% 20%, 12% 78%, 16% 6%, 20% 94%,
+        24% 30%, 28% 70%, 32% 12%, 36% 88%, 40% 43%, 44% 56%, 48% 22%,
+        52% 77%, 56% 37%, 60% 65%, 64% 9%, 68% 91%, 72% 32%, 76% 69%,
+        80% 42%, 84% 59%, 88% 18%, 92% 82%, 96% 45%, 100% 50%, 100% 54%,
+        96% 55%, 92% 18%, 88% 82%, 84% 41%, 80% 58%, 76% 31%, 72% 68%,
+        68% 9%, 64% 91%, 60% 34%, 56% 63%, 52% 23%, 48% 78%, 44% 44%,
+        40% 57%, 36% 12%, 32% 88%, 28% 31%, 24% 71%, 20% 6%, 16% 94%,
+        12% 22%, 8% 80%, 5% 55%, 0 54%);
+      opacity: .8;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .chip {
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 0 0 20px;
+    }
+    .tile {
+      min-height: 126px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .025);
+    }
+    .tile b { display: block; margin-bottom: 9px; color: var(--mint); font-size: 18px; }
+    .tile p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.45; }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: auto 0 24px;
+    }
+    .step {
+      min-height: 148px;
+      padding: 18px 14px;
+      border-top: 2px solid var(--lavender);
+      background: rgba(255, 255, 255, .035);
+    }
+    .step:nth-child(2) { border-color: var(--mint); }
+    .step:nth-child(3) { border-color: var(--amber); }
+    .step:nth-child(4) { border-color: #ff8c9b; }
+    .step small {
+      display: block;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .step b { display: block; margin-bottom: 8px; font-size: 17px; }
+    .step span { color: var(--muted); font-size: 14px; line-height: 1.4; }
+    .guardrail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: auto 0;
+    }
+    .guardrail section { padding: 22px; border: 1px solid var(--line); }
+    .guardrail h3 { margin: 0 0 12px; color: var(--mint); font-size: 20px; }
+    .guardrail section:last-child h3 { color: var(--amber); }
+    .guardrail p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.5; }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      color: #d3c9e3;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .controls button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 15px;
+      color: var(--ink);
+      background: #211139;
+      cursor: pointer;
+    }
+    .controls button:disabled { opacity: .4; cursor: default; }
+    @media (max-width: 640px) {
+      .slide { padding: 7%; }
+      .hero-mark, .hero-wave { opacity: .25; }
+      .grid { gap: 8px; }
+      .tile { min-height: auto; padding: 12px; }
+      .tile p, .step span { font-size: 12px; }
+      .step { min-height: 110px; padding: 10px 8px; }
+      .step b { font-size: 13px; }
+      .guardrail { gap: 8px; }
+      .guardrail section { padding: 12px; }
+      .guardrail p { font-size: 13px; }
+    }
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      :root { color-scheme: dark; }
+      body { display: block; background: #211139; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .deck { width: 100%; }
+      .slide, .slide.active {
+        display: flex !important;
+        width: 13.333in;
+        height: 7.5in;
+        aspect-ratio: auto;
+        border: 0;
+        box-shadow: none;
+        break-after: page;
+        page-break-after: always;
+      }
+      .controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="AI Innovation hackathon presentation">
+    <section class="slide active" aria-label="Slide 1: AI Innovation">
+      <div class="hero-mark" aria-hidden="true"></div>
+      <div class="hero-wave" aria-hidden="true"></div>
+      <div class="eyebrow">AssemblyAI Voice Agent Hackathon · September 2026</div>
+      <h1>Support,<br>in your language.</h1>
+      <p class="lede">AI Innovation — a bilingual voice-support assistant for Vietnamese- and English-speaking customers.</p>
+      <div class="chips">
+        <span class="chip">Vietnamese ↔ English</span>
+        <span class="chip">Voice-first</span>
+        <span class="chip">Human-aware</span>
+      </div>
+      <div class="bottom"><span>AI INNOVATION</span><span>01 / 05</span></div>
+    </section>
+
+    <section class="slide" aria-label="Slide 2: The support gap">
+      <div class="eyebrow">01 · The problem</div>
+      <h2>Getting help shouldn't depend on your language.</h2>
+      <div class="grid">
+        <article class="tile">
+          <b>Language friction</b>
+          <p>Customers may struggle to explain an issue or follow support steps in a second language.</p>
+        </article>
+        <article class="tile">
+          <b>Slow first response</b>
+          <p>Simple questions can turn into long waits before a customer knows what to try next.</p>
+        </article>
+        <article class="tile">
+          <b>Trust matters</b>
+          <p>Support should be clear about what it can do—and what requires a person.</p>
+        </article>
+        <article class="tile">
+          <b>Designed for a handoff</b>
+          <p>AI Innovation offers safe initial guidance and a concise issue summary for human support.</p>
+        </article>
+      </div>
+      <div class="bottom"><span>THE OPPORTUNITY</span><span>02 / 05</span></div>
+    </section>
+
+    <section class="slide" aria-label="Slide 3: Product experience">
+      <div class="eyebrow">02 · The experience</div>
+      <h2>One conversation. Two languages. Human control.</h2>
+      <div class="flow">
+        <div class="step"><small>01 · SPEAK</small><b>Natural voice</b><span>Describe the issue in Vietnamese or English.</span></div>
+        <div class="step"><small>02 · SEE</small><b>Live transcript</b><span>Follow partial and final speech recognition.</span></div>
+        <div class="step"><small>03 · HEAR</small><b>Spoken guidance</b><span>Short response sentences are voiced as they arrive.</span></div>
+        <div class="step"><small>04 · CONTROL</small><b>Interrupt or hand off</b><span>Barge in anytime; get a clear human-support next step.</span></div>
+      </div>
+      <p class="lede">The demo moves from a Vietnamese support question to an English follow-up, then demonstrates interruption and a transparent account-access limitation.</p>
+      <div class="bottom"><span>THE CUSTOMER JOURNEY</span><span>03 / 05</span></div>
+    </section>
+
+    <section class="slide" aria-label="Slide 4: Architecture">
+      <div class="eyebrow">03 · Built on AssemblyAI</div>
+      <h2>Real-time speech in. Orchestrated support out.</h2>
+      <div class="flow">
+        <div class="step"><small>INPUT</small><b>Browser mic</b><span>Mono PCM16 audio at 24 kHz over WebSocket.</span></div>
+        <div class="step"><small>SPEECH</small><b>AssemblyAI</b><span>Streaming Speech-to-Text with Vietnamese / English recognition.</span></div>
+        <div class="step"><small>ORCHESTRATION</small><b>FastAPI + Gemini</b><span>Conversation history, language preference, and streamed reply.</span></div>
+        <div class="step"><small>VOICE</small><b>Edge TTS</b><span>Sentence-sized audio returned to the browser in real time.</span></div>
+      </div>
+      <p class="lede">The application owns the orchestration, making the speech, LLM, and voice layers independently replaceable.</p>
+      <div class="bottom"><span>THE TECHNOLOGY</span><span>04 / 05</span></div>
+    </section>
+
+    <section class="slide" aria-label="Slide 5: Trust and next step">
+      <div class="eyebrow">04 · Responsible support</div>
+      <h2>Helpful, without pretending to be the helpdesk.</h2>
+      <div class="guardrail">
+        <section>
+          <h3>What AI Innovation does</h3>
+          <p>Offers concise, general troubleshooting; speaks the customer's language; and prepares a short summary to share with official support.</p>
+        </section>
+        <section>
+          <h3>What AI Innovation does not do</h3>
+          <p>It cannot access accounts, check orders, create tickets, issue refunds, or state company policies. It does not request passwords or payment credentials.</p>
+        </section>
+      </div>
+      <p class="lede" style="margin-top:24px">Next: connect an approved company knowledge base and human-support workflow, with authentication and privacy safeguards.</p>
+      <div class="bottom"><span>AI INNOVATION · BILINGUAL VOICE SUPPORT</span><span>05 / 05</span></div>
+    </section>
+    <nav class="controls" aria-label="Slide controls">
+      <button id="previous" type="button" aria-label="Previous slide">← Previous</button>
+      <span id="counter" aria-live="polite">Slide 1 of 5 · Arrow keys navigate · Print to PDF exports all slides</span>
+      <button id="next" type="button" aria-label="Next slide">Next →</button>
+    </nav>
+  </main>
+  <script>
+    "use strict";
+    const slides = [...document.querySelectorAll(".slide")];
+    const previous = document.getElementById("previous");
+    const next = document.getElementById("next");
+    const counter = document.getElementById("counter");
+    let current = 0;
+
+    function showSlide(index) {
+      current = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === current);
+        slide.setAttribute("aria-hidden", String(i !== current));
+      });
+      previous.disabled = current === 0;
+      next.disabled = current === slides.length - 1;
+      counter.textContent = `Slide ${current + 1} of ${slides.length} · Arrow keys navigate · Print to PDF exports all slides`;
+    }
+
+    previous.addEventListener("click", () => showSlide(current - 1));
+    next.addEventListener("click", () => showSlide(current + 1));
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight" || event.key === " ") showSlide(current + 1);
+      if (event.key === "ArrowLeft") showSlide(current - 1);
+    });
+    showSlide(0);
+  </script>
+</body>
+</html>

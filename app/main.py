@@ -13,7 +13,7 @@ CLIENT_DIR = BASE_DIR / "client"
 
 
 app = FastAPI(
-    title="Realtime Multilingual Voice Agent",
+    title="AI Innovation - Bilingual Voice Support",
     version="0.2.0",
 )
 
