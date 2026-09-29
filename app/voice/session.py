@@ -1,10 +1,8 @@
 # app/voice/session.py
 #
-# IMPORTANT:
-# reply.audio is a STREAM of PCM16 chunks.
-# Do not treat each chunk as a complete audio file.
+# AssemblyAI's own reply.audio is discarded (no Vietnamese voice);
+# the agent's text reply is instead synthesized via Edge TTS.
 
-import base64
 import json
 import uuid
 from typing import Any
@@ -12,6 +10,10 @@ from typing import Any
 from fastapi import WebSocket
 
 from app.voice.assemblyai_agent import AssemblyAIVoiceAgent
+from app.voice.edge_tts import EdgeTTS
+
+
+GREETING_TEXT = "Xin chào, tôi có thể giúp gì cho bạn?"
 
 
 class VoiceSession:
@@ -25,6 +27,8 @@ class VoiceSession:
         self.agent = AssemblyAIVoiceAgent(
             on_event=self._handle_agent_event,
         )
+
+        self.tts = EdgeTTS()
 
     async def receive_loop(self) -> None:
         await self.agent.connect()
@@ -116,6 +120,8 @@ class VoiceSession:
                     ),
                 }
             )
+
+            # TEMP DEBUG: greeting disabled to isolate the bug
             return
 
         if event_type == "session.updated":
@@ -173,35 +179,39 @@ class VoiceSession:
             return
 
         if event_type == "reply.audio":
-            audio_data = event.get("data")
-
-            if not audio_data:
-                return
-
-            audio_bytes = base64.b64decode(
-                audio_data
-            )
-
-            await self.websocket.send_bytes(
-                audio_bytes
-            )
-
+            # AssemblyAI's own TTS cannot speak Vietnamese; the
+            # reply is instead synthesized via Google TTS below,
+            # once the full text is known.
             return
 
         if event_type == "transcript.agent":
+            text = event.get("text", "")
+
             await self._send_json(
                 {
                     "type": "assistant_text",
-                    "text": event.get(
-                        "text",
-                        "",
-                    ),
+                    "text": text,
                     "interrupted": event.get(
                         "interrupted",
                         False,
                     ),
                 }
             )
+
+            # This flow uses AssemblyAI's own bundled LLM, which
+            # doesn't report a language_code, so default to
+            # Vietnamese here (see the Gemini-based orchestrator
+            # for real per-reply language detection).
+            audio_bytes = await self.tts.synthesize(
+                text,
+                language_code="vi",
+            )
+
+            if audio_bytes:
+                await self.websocket.send_bytes(
+                    audio_bytes
+                )
+
             return
 
         if event_type == "reply.done":

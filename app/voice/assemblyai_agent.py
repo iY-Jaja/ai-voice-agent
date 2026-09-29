@@ -15,24 +15,8 @@ ASSEMBLYAI_VOICE_AGENT_URL = "wss://agents.assemblyai.com/v1/ws"
 
 
 SUPPORTED_INPUT_LANGUAGES = [
-    "en",
-    "es",
-    "de",
-    "fr",
-    "pt",
-    "it",
-    "tr",
-    "nl",
-    "sv",
-    "no",
-    "da",
-    "fi",
-    "hi",
     "vi",
-    "ar",
-    "he",
-    "ja",
-    "zh",
+    "en",
 ]
 
 
@@ -72,9 +56,13 @@ class AssemblyAIVoiceAgent:
                         "The user may switch languages during a "
                         "conversation."
                     ),
-                    "greeting": (
-                        "Hello! How can I help you?"
-                    ),
+                    # NOTE: AssemblyAI's built-in "greeting" field is
+                    # deliberately omitted. Configuring it leaves this
+                    # session unable to detect any speech after the
+                    # greeting plays (verified: input.speech.started
+                    # never fires again). The greeting is instead
+                    # synthesized by VoiceSession itself once
+                    # session.ready arrives.
                     "input": {
                         "language_codes": (
                             SUPPORTED_INPUT_LANGUAGES

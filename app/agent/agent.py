@@ -1,5 +1,5 @@
 from app.agent.prompts import SYSTEM_PROMPT
-from app.infrastructure.llm import LLM
+from app.infrastructure.llm import LLM, AgentReply
 
 
 class Agent:
@@ -9,7 +9,7 @@ class Agent:
     async def respond(
         self,
         conversation: list[dict[str, str]],
-    ) -> str:
+    ) -> AgentReply:
         messages = [
             {
                 "role": "system",
